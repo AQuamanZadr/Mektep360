@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* === СТИЛИ ДЛЯ НОВОГО КАЛЕНДАРЯ === */
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr); /* 7 колонок для дней недели */
+        gap: 10px 5px; /* Отступы между ячейками */
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .cal-header {
+        font-weight: bold;
+        color: var(--text-muted); /* Серый цвет для дней недели */
+        padding-bottom: 10px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+    
+    .grid-day {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        cursor: pointer;
+        border-radius: 50%; /* Делает выделение круглым */
+        transition: 0.2s ease-in-out;
+        font-weight: 500;
+        color: #000000; /* ЧЕРНЫЕ ЦИФРЫ, как ты просил */
+        font-size: 1.1rem;
+    }
+    
+    .grid-day:hover:not(.disabled) {
+        background-color: var(--primary-light); /* Легкий фон при наведении */
+    }
+    
+    .grid-day.active {
+        background-color: #3ba4ff; /* Голубой круг как на картинке */
+        color: #000000; /* Черный текст внутри активного круга */
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(59, 164, 255, 0.4);
+    }
+    
+    .grid-day.disabled {
+        color: #cccccc; /* Светло-серые цифры для других месяцев */
+        cursor: default;
+    }
+    
+    .grid-day.disabled:hover {
+        background-color: transparent;
+    }
+</style>
+
+<div class="d-container">
+    <div class="d-card">
+        <h1 class="d-title">MEAL PLANNER</h1>
+        <p class="d-subtitle">Select Date</p>
+
+        <div id="cal-wrapper" class="calendar-grid"></div>
+
+        <div id="meal-area" style="display:none; border-top: 1px solid #eee; padding-top: 20px;">
+            <h3 id="selected-date-title" style="color:var(--primary); margin-bottom: 15px;">Options</h3>
+            
+            <label style="display:flex; align-items:center; background:#f9fafb; border: 1px solid #e5e7eb; padding:15px; margin-bottom:10px; border-radius:8px; cursor: pointer;">
+                <input type="checkbox" id="m-b" style="accent-color:var(--primary); width: 18px; height: 18px;"> 
+                <span style="color:var(--text-main); margin-left:10px; font-weight: 500;">BREAKFAST (08:00)</span>
+            </label>
+            
+            <label style="display:flex; align-items:center; background:#f9fafb; border: 1px solid #e5e7eb; padding:15px; margin-bottom:10px; border-radius:8px; cursor: pointer;">
+                <input type="checkbox" id="m-l" style="accent-color:var(--primary); width: 18px; height: 18px;"> 
+                <span style="color:var(--text-main); margin-left:10px; font-weight: 500;">LUNCH (13:00)</span>
+            </label>
+            
+            <label style="display:flex; align-items:center; background:#f9fafb; border: 1px solid #e5e7eb; padding:15px; margin-bottom:10px; border-radius:8px; cursor: pointer;">
+                <input type="checkbox" id="m-s" style="accent-color:var(--primary); width: 18px; height: 18px;"> 
+                <span style="color:var(--text-main); margin-left:10px; font-weight: 500;">SNACK (16:00)</span>
+            </label>
+            
+            <label style="display:flex; align-items:center; background:#f9fafb; border: 1px solid #e5e7eb; padding:15px; margin-bottom:10px; border-radius:8px; cursor: pointer;">
+                <input type="checkbox" id="m-d" style="accent-color:var(--primary); width: 18px; height: 18px;"> 
+                <span style="color:var(--text-main); margin-left:10px; font-weight: 500;">DINNER (19:00)</span>
+            </label>
+
+            <button onclick="save()" class="btn-submit">CONFIRM SELECTION</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSel = "";
+    
+    function initCal() {
+        const wrap = document.getElementById('cal-wrapper');
+        wrap.innerHTML = ''; 
+        
+        // Дни недели (можно заменить на ['дс', 'сс', 'ср', 'бс', 'жм', 'сб', 'жс'], если нужен казахский)
+        const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+        
+        // Добавляем заголовки дней недели
+        days.forEach(day => {
+            let el = document.createElement('div');
+            el.className = 'cal-header';
+            el.innerText = day;
+            wrap.appendChild(el);
+        });
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        // Узнаем, с какого дня недели начинается месяц (0 - воскресенье, 1 - понедельник)
+        let firstDay = new Date(year, month, 1).getDay();
+        let startDay = firstDay === 0 ? 6 : firstDay - 1; // Смещаем, чтобы неделя начиналась с понедельника
+        
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const prevMonthDays = new Date(year, month, 0).getDate();
+
+        // 1. Добавляем блеклые числа предыдущего месяца (для выравнивания сетки)
+        for(let i = startDay - 1; i >= 0; i--) {
+            let el = document.createElement('div');
+            el.className = 'grid-day disabled';
+            el.innerText = prevMonthDays - i;
+            wrap.appendChild(el);
+        }
+
+        // 2. Добавляем активные числа текущего месяца
+        for(let i = 1; i <= daysInMonth; i++) {
+            let d = new Date(year, month, i);
+            let dateKey = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+            
+            let div = document.createElement('div');
+            div.className = 'grid-day';
+            div.innerText = i;
+            
+            // Если это сегодняшний день, слегка выделяем его границей (по желанию)
+            if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                div.style.border = "2px solid var(--border-color)";
+            }
+            
+            div.onclick = async () => {
+                document.querySelectorAll('.grid-day').forEach(e => e.classList.remove('active'));
+                div.classList.add('active');
+                
+                // Сброс галочек
+                document.getElementById('m-b').checked = false;
+                document.getElementById('m-l').checked = false;
+                document.getElementById('m-s').checked = false;
+                document.getElementById('m-d').checked = false; 
+                
+                currentSel = dateKey;
+                document.getElementById('selected-date-title').innerText = "MENU FOR " + dateKey;
+                document.getElementById('meal-area').style.display = 'block';
+
+                const res = await fetch(`/get_meal/{{user.username}}/${dateKey}`);
+                const data = await res.json();
+                
+                if(data.meals.includes("Breakfast")) document.getElementById('m-b').checked = true;
+                if(data.meals.includes("Lunch")) document.getElementById('m-l').checked = true;
+                if(data.meals.includes("Snack")) document.getElementById('m-s').checked = true;
+                if(data.meals.includes("Dinner")) document.getElementById('m-d').checked = true;
+            };
+            wrap.appendChild(div);
+        }
+        
+        // 3. Добавляем блеклые числа следующего месяца в конец сетки
+        const totalCells = startDay + daysInMonth;
+        let nextDays = 42 - totalCells; // 42 ячейки = 6 строк по 7 дней
+        if (nextDays >= 7) nextDays -= 7; // Убираем лишнюю пустую строку, если она не нужна
+        
+        for(let i = 1; i <= nextDays; i++) {
+            let el = document.createElement('div');
+            el.className = 'grid-day disabled';
+            el.innerText = i;
+            wrap.appendChild(el);
+        }
+    }
+
+    async function save() {
+        if (!currentSel) return;
+        const m = [];
+        if(document.getElementById('m-b').checked) m.push("Breakfast");
+        if(document.getElementById('m-l').checked) m.push("Lunch");
+        if(document.getElementById('m-s').checked) m.push("Snack");
+        if(document.getElementById('m-d').checked) m.push("Dinner"); 
+        
+        await fetch('/book_meal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: "{{ user.username }}", date: currentSel, meals: m})
+        });
+        alert("✅ SAVED!");
+    }
+    
+    // Запускаем отрисовку календаря
+    initCal();
+</script>
+{% endblock %}

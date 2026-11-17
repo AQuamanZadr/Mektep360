@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+        background-image: url('/static/images/IMG_2435.png');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        margin: 0; 
+        min-height: 100vh; 
+    }
+</style>
+
+<div class="d-container">
+    <div class="d-card">
+        <h1 class="d-title">ABOUT ME</h1>
+        <p class="d-subtitle">The Developer</p>
+
+        <div style="display: flex; align-items: center; gap: 30px; border: 2px solid var(--secondary); padding: 20px; border-radius: 10px;">
+            <img src="https://ui-avatars.com/api/?name=Kemaladin+Satbergen&background=00e5ff&color=000&size=150" 
+                 style="width: 120px; height: 120px; border-radius: 50%;">
+            
+            <div>
+                <h2 style="color: var(--secondary); margin-bottom: 10px;">KEMALADIN SATBERGEN</h2>
+                <br>
+                <p style="color: #ccc;">
+                    Hello, I am a 10A student.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZHBILSITE</title>
+    <link rel="stylesheet" href="/static/css/dark_theme.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="nav-logo">
+            <img src="/static/images/logo.png" alt="Logo">
+            ZHBIL<span style="color:var(--secondary)">SITE</span>
+        </a>
+        
+        {% if user %}
+        <div class="nav-links">
+            <a href="/home/{{user.username}}" class="nav-item">Home</a>
+            <a href="/meals/{{user.username}}" class="nav-item">Meals</a>
+            <a href="/profile/{{user.username}}" class="nav-item">Profile</a>
+            <a href="/about/{{user.username}}" class="nav-item">About me</a>
+            {% if user.is_admin %}
+                <a href="/admin/{{user.username}}" class="nav-item" style="color:red;">Admin</a>
+            {% endif %}
+        </div>
+        
+        <div class="nav-profile">
+            <span style="font-weight:bold;">{{ user.first_name }}</span>
+            <span style="color:var(--secondary); font-weight:900;">{{ user.coins }} 💰</span>
+            <a href="/" style="color:red; font-weight:bold; text-decoration:none;">EXIT</a>
+        </div>
+        {% else %}
+        <div class="nav-links"><span class="nav-item">Welcome Guest</span></div>
+        {% endif %}
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>

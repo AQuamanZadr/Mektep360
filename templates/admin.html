@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+        background-image: url('/static/images/IMG_2435.png');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        margin: 0; 
+        min-height: 100vh; 
+    }
+
+    /* === СТИЛИ СВЕТЛОГО КАЛЕНДАРЯ (как в Meal Planner) === */
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px 5px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .cal-header {
+        font-weight: bold;
+        color: var(--text-muted);
+        padding-bottom: 10px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+    
+    .grid-day {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        cursor: pointer;
+        border-radius: 50%;
+        transition: 0.2s ease-in-out;
+        font-weight: 500;
+        color: #000000; /* ЧЕРНЫЕ ЦИФРЫ */
+        font-size: 1.1rem;
+    }
+    
+    .grid-day:hover:not(.disabled) {
+        background-color: var(--primary-light);
+    }
+    
+    .grid-day.active {
+        background-color: #3ba4ff;
+        color: #000000; /* ЧЕРНЫЙ ТЕКСТ В АКТИВНОМ КРУЖКЕ */
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(59, 164, 255, 0.4);
+    }
+    
+    .grid-day.disabled {
+        color: #cccccc;
+        cursor: default;
+    }
+    
+    .grid-day.disabled:hover {
+        background-color: transparent;
+    }
+</style>
+
+<div class="d-container">
+    <div class="d-card" style="border-left-color: var(--primary);">
+        <div class="d-head">
+            <h1 class="d-title">ADMIN PANEL</h1>
+            <p class="d-subtitle">Student & Meal Management</p>
+        </div>
+        
+        <div class="d-content">
+            
+            <div class="d-box" style="margin-bottom: 30px;">
+                <span class="d-box-title">📊 DAILY MEAL REPORT</span>
+                <p style="color:var(--text-muted); margin-bottom:10px;">Select a date to filter by meal type.</p>
+                
+                <div id="admin-cal" class="calendar-grid"></div>
+                
+                <div id="report-res" style="margin-top:20px; padding: 20px; background: #f9fafb; border: 1px solid var(--border-color); border-radius: 8px; min-height: 100px;">
+                    <p style="color:var(--text-muted); text-align:center;">Select a date above...</p>
+                </div>
+            </div>
+
+            <div class="d-box">
+                <span class="d-box-title">👥 ALL STUDENTS</span>
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse:collapse; color:var(--text-main); min-width: 600px;">
+                        <thead>
+                            <tr style="border-bottom:2px solid var(--primary); text-align:left;">
+                                <th style="padding:10px;">ID</th>
+                                <th>NAME</th>
+                                <th>GRADE</th>
+                                <th>COINS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in all_users %}
+                            <tr id="row-{{u.id}}" style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px; color:var(--text-muted);">{{ u.id }}</td>
+                                <td style="font-weight: 600; color: #000000;">{{ u.first_name }} {{ u.last_name }}</td>
+                                <td style="color: #000000;">{{ u.grade }}</td>
+                                <td id="c-{{u.username}}" style="color:var(--primary); font-weight:bold;">{{ u.coins }}</td>
+                                <td style="display:flex; gap:10px; padding: 10px 0;">
+                                    
+                                    <button onclick="askAmount('{{u.username}}')" 
+                                            style="background:var(--primary); color:white; border:none; padding:5px 15px; cursor:pointer; font-weight:bold; border-radius:4px;">
+                                        🪙 MANAGE
+                                    </button>
+                                    
+                                    {% if not u.is_admin %}
+                                    <button onclick="deleteUser({{u.id}})" 
+                                            style="background:#ef4444; color:white; border:none; padding:5px 10px; cursor:pointer; font-weight:bold; border-radius:4px;">
+                                        DEL ❌
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function initCal() {
+        const wrap = document.getElementById('admin-cal');
+        wrap.innerHTML = ''; 
+        
+        const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+        
+        days.forEach(day => {
+            let el = document.createElement('div');
+            el.className = 'cal-header';
+            el.innerText = day;
+            wrap.appendChild(el);
+        });
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        let firstDay = new Date(year, month, 1).getDay();
+        let startDay = firstDay === 0 ? 6 : firstDay - 1; 
+        
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const prevMonthDays = new Date(year, month, 0).getDate();
+
+        for(let i = startDay - 1; i >= 0; i--) {
+            let el = document.createElement('div');
+            el.className = 'grid-day disabled';
+            el.innerText = prevMonthDays - i;
+            wrap.appendChild(el);
+        }
+
+        for(let i = 1; i <= daysInMonth; i++) {
+            let d = new Date(year, month, i);
+            let dateKey = `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+            
+            let div = document.createElement('div');
+            div.className = 'grid-day';
+            div.innerText = i;
+            
+            if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                div.style.border = "2px solid var(--border-color)";
+            }
+            
+            div.onclick = async () => {
+                document.querySelectorAll('.grid-day').forEach(e => e.classList.remove('active'));
+                div.classList.add('active');
+                
+                const box = document.getElementById('report-res');
+                box.innerHTML = `<p style="color:var(--text-muted); text-align:center;">Loading...</p>`;
+                
+                // Запрашиваем данные для отчета у админа
+                const res = await fetch(`/admin/report/${dateKey}`);
+                const data = await res.json();
+                
+                box.innerHTML = `<h3 style="color:var(--primary); text-align:center; border-bottom:1px solid var(--border-color); padding-bottom:10px;">MENU FOR ${dateKey}</h3>`;
+
+                const mealTypes = ["Breakfast", "Lunch", "Snack", "Dinner"];
+                const icons = {"Breakfast": "🍳", "Lunch": "🍲", "Snack": "🍎", "Dinner": "🌙"};
+                let hasData = false;
+
+                mealTypes.forEach(type => {
+                    const students = data.records.filter(r => r.meal === type);
+                    if (students.length > 0) {
+                        hasData = true;
+                        let html = `<div style="margin-top:20px;">
+                            <h4 style="color:var(--text-main); text-transform:uppercase; margin-bottom:10px;">
+                                ${icons[type]} ${type} <span style="background:var(--primary); padding:2px 8px; border-radius:10px; font-size:0.8rem; color:white;">${students.length}</span>
+                            </h4>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">`;
+                        students.forEach(s => {
+                            html += `
+                            <div style="background:#ffffff; border: 1px solid var(--border-color); padding:10px; border-radius:5px; display:flex; align-items:center; gap:10px;">
+                                <img src="${s.avatar || 'https://ui-avatars.com/api/?name='+s.name}" style="width:35px; height:35px; border-radius:50%;">
+                                <div>
+                                    <div style="font-weight:bold; font-size:0.95rem; color:#000000;">${s.name}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">Grade: ${s.grade}</div>
+                                </div>
+                            </div>`;
+                        });
+                        html += `</div></div>`;
+                        box.innerHTML += html;
+                    }
+                });
+
+                if (!hasData) box.innerHTML += `<p style="text-align:center; color:var(--text-muted); margin-top:20px;">No meals booked for this day.</p>`;
+            };
+            wrap.appendChild(div);
+        }
+        
+        const totalCells = startDay + daysInMonth;
+        let nextDays = 42 - totalCells; 
+        if (nextDays >= 7) nextDays -= 7; 
+        
+        for(let i = 1; i <= nextDays; i++) {
+            let el = document.createElement('div');
+            el.className = 'grid-day disabled';
+            el.innerText = i;
+            wrap.appendChild(el);
+        }
+    }
+
+    function askAmount(username) {
+        let amount = prompt(`Enter amount for ${username} (use - for remove):`, "10");
+        if (amount != null && amount.trim() !== "") {
+            changeCoins(username, parseInt(amount));
+        }
+    }
+
+    async function changeCoins(u, amount) {
+        const res = await fetch('/give_coins', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({target_username: u, amount: amount})
+        });
+        const d = await res.json();
+        document.getElementById('c-'+u).innerText = d.new_balance;
+    }
+
+    async function deleteUser(userId) {
+        if(!confirm("Delete this student permanently?")) return;
+        const res = await fetch('/delete_user', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({target_id: userId})
+        });
+        if(res.ok) document.getElementById('row-' + userId).remove();
+    }
+
+    initCal();
+</script>
+{% endblock %}

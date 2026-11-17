@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+        background-image: url('/static/images/IMG_2435.png');
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        margin: 0; 
+        min-height: 100vh; 
+    }
+</style>
+
+<div class="d-container">
+    <div class="d-card">
+        <h1 class="d-title">PROFILE</h1>
+        
+        <div style="display:flex; align-items:center; gap:20px; margin-bottom:30px;">
+            <img src="{{ user.profile_image or 'https://ui-avatars.com/api/?name=' + user.first_name }}" 
+                 style="width:100px; height:100px; border-radius:50%; border:2px solid var(--primary); object-fit:cover;">
+            <div>
+                <h2 style="color:var(--text-main); margin-bottom: 5px;">{{ user.first_name }} {{ user.last_name }}</h2>
+                
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="background:var(--primary); color:white; padding:4px 10px; font-weight:bold; border-radius:6px;">
+                        {{ user.grade }}
+                    </span>
+                    
+                    <span style="background:#FFD700; color:#1F2937; padding:4px 10px; font-weight:bold; border-radius:6px; display: flex; align-items: center; gap: 5px;">
+                        💰 {{ user.coins }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <form action="/update_profile" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="username" value="{{ user.username }}">
+            
+            <label style="color:var(--primary); font-weight: bold;">First Name</label>
+            <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+            
+            <label style="color:var(--primary); font-weight: bold;">Last Name</label>
+            <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+            
+            <label style="color:var(--primary); font-weight: bold;">Grade</label>
+            <input type="text" name="grade" class="form-control" value="{{ user.grade }}">
+            
+            <label style="color:var(--primary); font-weight: bold;">New Photo</label>
+            <input type="file" name="profile_pic" class="form-control">
+            
+            <button class="btn-submit">SAVE CHANGES</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
